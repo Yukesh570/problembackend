@@ -12,8 +12,8 @@ urlpatterns = [
     path('updatewholetable/<str:pk>/', views.updatewholetable, name='updatewholetable'),
 
     path('chooseGame/<str:pk>/', views.chooseGame, name='chooseGame'),
-    path('video_feed/', python.video_feed, name='video_feed'),
-    path('video_feedmain/', python.video_feedmain, name='video_feedmain'),
+    path('video_feed/<int:pk>/', python.video_feed, name='video_feed'),
+    # path('video_feedmain/', python.video_feedmain, name='video_feedmain'),
 
     path('timer_video_feed/<int:pk>/', arduino.timer_video_feed, name='timer_video_feed'),
 
