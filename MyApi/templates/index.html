@@ -1,0 +1,35 @@
+<!-- webcam.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Webcam Feed</title>
+</head>
+<body>
+    <h1>Webcam Feed</h1>
+    <video id="videoElement" autoplay></video>
+
+    <script>
+        const video = document.getElementById('videoElement');
+
+        // Function to periodically fetch and update video frames
+        function fetchAndDisplayFrames() {
+            // Use Fetch API or WebSocket to fetch frames from Django backend
+            // Example: Fetch frames from endpoint '/api/get_frames'
+            fetch('/api/background_run/1/')
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    video.src = url;
+                })
+                .catch(error => console.error('Error fetching frames:', error));
+
+            // Call this function periodically
+            setTimeout(fetchAndDisplayFrames, 1000);  // Adjust as needed
+        }
+
+        // Call function to start fetching and displaying frames
+        fetchAndDisplayFrames();
+    </script>
+</body>
+</html>
