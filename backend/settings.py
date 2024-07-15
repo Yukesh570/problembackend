@@ -85,13 +85,14 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Celery Configuration
 CELERY_BROKER_URL = 'redis://127.0.0.1:6379'  # Example for Redis broker
 # CELERY_RESULT_BACKEND ='redis://127.0.0.1:6379'
-CELERY_ACCEPT_CONTENT=['application/json']
-CELERY_RESULT_SERIALIZER='json'
-CELERY_TASK_SERIALIZER='json'
-CELERY_TIMEZONE='Asia/Kathmandu'
-CELERY_RESULT_BACKEND='django-db'
+accept_content=['application/json']
+result_serializer='json'
+task_serializer='json'
+timezone='Asia/Kathmandu'
+result_backend='django-db'
 
 
+broker_connection_retry_on_startup = True
 
 
 CACHES = {

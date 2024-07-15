@@ -20,9 +20,6 @@ from django.http import HttpResponse
 from django.utils import timezone
 
 # from .python import background_video_processing
-def test(request):
-    test_func.delay()
-    return HttpResponse("done")
 
 
 
