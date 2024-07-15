@@ -22,9 +22,9 @@ class Table(models.Model):
     person=models.ForeignKey(Person,null=True,  blank=True,on_delete=models.SET_NULL,related_name='table')
     rate=models.DecimalField(max_digits=7,decimal_places=2,default=0)
     price=models.DecimalField(max_digits=7,decimal_places=2,null=True , blank=True) 
-    start_time = models.DateTimeField(null=True, blank=True,default=timezone.now)
+    start_time = models.DateTimeField(null=True, blank=True)
     elapsed_time=models.DecimalField(max_digits=7,decimal_places=2,null=True , blank=True)
-    end_time = models.DateTimeField(null=True, blank=True,default=timezone.now)
+    end_time = models.DateTimeField(null=True, blank=True)
     # frame_time_limit = models.TimeField(default=get_current_time)
     frame_limit=models.DurationField(null=True , blank=True)
 

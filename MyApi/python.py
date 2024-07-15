@@ -13,6 +13,7 @@ from django.contrib.sessions.models import Session
 from celery import shared_task
 from django.core.cache import cache
 import subprocess
+from collections import deque
 
 from django.http import HttpResponseServerError
 from decimal import Decimal
@@ -116,7 +117,7 @@ def contour_touching(contour1,contour2,threshold_distance):
 #     return HttpResponse("done")
 current_frame_position = 0
 frames=None
-worker_process = None
+worker_processes = {}
 
 gameStarted = False
 current_frame = {}  # Initialize frame as a global variable
@@ -128,8 +129,7 @@ def background_video_processing(self,pk,pk1):
     # Retrieve session variables
     person=get_object_or_404(Person,id=pk1)
     table=get_object_or_404(Table,tableno=pk)
-  
-    cap = cv2.VideoCapture(cv2.CAP_ANY)  # Use 0 for the default webcam
+    cap = cv2.VideoCapture(pk)  # Use 0 for the default webcam
     if not cap.isOpened():
         raise IOError("Webcam cannot be opened.")
        
@@ -148,11 +148,11 @@ def background_video_processing(self,pk,pk1):
             break
 
         # Skip frames
-        frame_count += 1
-        current_frame_position = frame_count  # Update the global frame position
+        # frame_count += 1
+        # current_frame_position = frame_count  # Update the global frame position
 
-        if frame_count % skip_frames != 0:
-            continue
+        # if frame_count % skip_frames != 0:
+        #     continue
 
         #retreive values
         frame=cv2.resize(frame,(500,500))
@@ -269,7 +269,7 @@ def background_video_processing(self,pk,pk1):
         #             stop_timer(request,pk)
         #             print('boolean:', gameStarted)
         current_frame[pk]=frame
-        cache.set('current_frame', current_frame, timeout=5)
+        cache.set('current_frame', current_frame, timeout=3)
         
 
         # Save frame to database or file system accessible to Django
@@ -300,26 +300,35 @@ def background_video_processing(self,pk,pk1):
 #     # Return StreamingHttpResponse with multipart content type
 #     return StreamingHttpResponse(generate(), content_type='multipart/x-mixed-replace; boundary=frame')
 def video_feed(request,pk):
-    def frame_generator():
-        global current_frame
-        while True:
-            current_frame = cache.get('current_frame',{})  # Retrieve frame from cach
+    frame_buffer = deque(maxlen=20)  # Buffer for 10 frames to smooth streaming
 
-            print(';;;',current_frame[pk])
-            if pk in current_frame is not None and isinstance(current_frame[pk], np.ndarray):
-                ret, jpeg = cv2.imencode('.jpg', current_frame[pk])
-                if ret:
-                    frame = jpeg.tobytes()
-                    yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
-            else:
-                # Yield a placeholder image or a blank frame if current_frame is not valid
-                blank_frame = np.zeros((480, 640, 3), dtype=np.uint8)
-                ret, jpeg = cv2.imencode('.jpg', blank_frame)
-                if ret:
-                    frame = jpeg.tobytes()
-                    yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+    def frame_generator():
+        while True:
+            try:
+                current_frame = cache.get('current_frame', {})  # Retrieve frame from cache
+
+                if pk in current_frame and isinstance(current_frame[pk], np.ndarray):
+                    ret, jpeg = cv2.imencode('.jpg', current_frame[pk])
+                    if ret:
+                        frame = jpeg.tobytes()
+                        frame_buffer.append(frame)  # Add frame to buffer
+                        yield (b'--frame\r\n'
+                               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+                else:
+                    # Yield a frame from buffer if current_frame is not valid
+                    if frame_buffer:
+                        yield frame_buffer[-1]  # Yield the latest frame from buffer
+
+                    # Yield a placeholder image or a blank frame
+                    blank_frame = np.zeros((480, 640, 3), dtype=np.uint8)
+                    ret, jpeg = cv2.imencode('.jpg', blank_frame)
+                    if ret:
+                        frame = jpeg.tobytes()
+                        yield (b'--frame\r\n'
+                               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+
+            except Exception as e:
+                print(f"Error in frame_generator: {e}")
 
     return StreamingHttpResponse(frame_generator(), content_type='multipart/x-mixed-replace; boundary=frame')
 def index(request):
@@ -335,8 +344,13 @@ def index(request,pk):
 
 
 def background_run(request,pk,pk1):
-    global worker_process
-    worker_process = subprocess.Popen(['celery', '-A', 'backend.celery', 'worker', '--pool=solo', '-l', 'info'])
+    global worker_processes
+
+    if pk in worker_processes and worker_processes[pk].poll() is None:
+        worker_process= worker_processes[pk]
+    else:
+        worker_process = subprocess.Popen(['celery', '-A', 'backend.celery', 'worker', '--pool=solo', '-l', 'info'])
+        worker_processes[pk] = worker_process
 
     background_video_processing.delay(pk,pk1)
     response_data={

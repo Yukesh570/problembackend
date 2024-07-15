@@ -9,7 +9,11 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 
 app = Celery('backend')
 app.conf.enable_utc=False  #not utc timezone 
-app.conf.update(timezone='Asia/Kathmandu')
+app.conf.update(
+    timezone='Asia/Kathmandu',
+    broker_connection_retry_on_startup=True,
+
+    )
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
 app.config_from_object(settings, namespace='CELERY')
