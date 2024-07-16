@@ -122,8 +122,12 @@ worker_processes = {}
 gameStarted = False
 current_frame = {}  # Initialize frame as a global variable
 nowframe=0
+
+
 @shared_task(bind=True)
 def background_video_processing(self,pk,pk1):
+    print(f"Task started with pk: {pk}, pk1: {pk1}")
+
     global current_frame, current_frame_position, gameStarted
 
     # Retrieve session variables
@@ -269,7 +273,7 @@ def background_video_processing(self,pk,pk1):
         #             stop_timer(request,pk)
         #             print('boolean:', gameStarted)
         current_frame[pk]=frame
-        cache.set('current_frame', current_frame, timeout=3)
+        cache.set('current_frame', current_frame, timeout=2)
         
 
         # Save frame to database or file system accessible to Django
@@ -300,11 +304,10 @@ def background_video_processing(self,pk,pk1):
 #     # Return StreamingHttpResponse with multipart content type
 #     return StreamingHttpResponse(generate(), content_type='multipart/x-mixed-replace; boundary=frame')
 def video_feed(request,pk):
-    frame_buffer = deque(maxlen=20)  # Buffer for 10 frames to smooth streaming
+    frame_buffer = deque(maxlen=40)  # Buffer for 10 frames to smooth streaming
 
-    def frame_generator():
+    def frame_generator(pk):
         while True:
-            try:
                 current_frame = cache.get('current_frame', {})  # Retrieve frame from cache
 
                 if pk in current_frame and isinstance(current_frame[pk], np.ndarray):
@@ -314,23 +317,29 @@ def video_feed(request,pk):
                         frame_buffer.append(frame)  # Add frame to buffer
                         yield (b'--frame\r\n'
                                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+                        
+
+
                 else:
-                    # Yield a frame from buffer if current_frame is not valid
-                    if frame_buffer:
-                        yield frame_buffer[-1]  # Yield the latest frame from buffer
+                    # Wait for a short period before retrying
+                    time.sleep(0.03)  # Adjust sleep time as needed
+            #     else:
+            #         # Yield a frame from buffer if current_frame is not valid
+            #         if frame_buffer:
+            #             yield frame_buffer[-1]  # Yield the latest frame from buffer
 
-                    # Yield a placeholder image or a blank frame
-                    blank_frame = np.zeros((480, 640, 3), dtype=np.uint8)
-                    ret, jpeg = cv2.imencode('.jpg', blank_frame)
-                    if ret:
-                        frame = jpeg.tobytes()
-                        yield (b'--frame\r\n'
-                               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+            #         # Yield a placeholder image or a blank frame
+            #         blank_frame = np.zeros((480, 640, 3), dtype=np.uint8)
+            #         ret, jpeg = cv2.imencode('.jpg', blank_frame)
+            #         if ret:
+            #             frame = jpeg.tobytes()
+            #             yield (b'--frame\r\n'
+            #                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
 
-            except Exception as e:
-                print(f"Error in frame_generator: {e}")
+            # except Exception as e:
+            #     print(f"Error in frame_generator: {e}")
 
-    return StreamingHttpResponse(frame_generator(), content_type='multipart/x-mixed-replace; boundary=frame')
+    return StreamingHttpResponse(frame_generator(pk), content_type='multipart/x-mixed-replace; boundary=frame')
 def index(request):
     return render(request, 'index.html')
 
@@ -345,17 +354,25 @@ def index(request,pk):
 
 def background_run(request,pk,pk1):
     global worker_processes
-
+    nodename = f"worker_{pk}@{pk}"
+    queue_name = f"queue_{pk}"
     if pk in worker_processes and worker_processes[pk].poll() is None:
         worker_process= worker_processes[pk]
     else:
-        worker_process = subprocess.Popen(['celery', '-A', 'backend.celery', 'worker', '--pool=solo', '-l', 'info'])
+        worker_process = subprocess.Popen([
+            'celery', '-A', 'backend.celery', 'worker',
+            '--pool=solo',
+            '-Q', queue_name,
+            '-n', nodename,
+            '-l', 'info'
+        ])
         worker_processes[pk] = worker_process
 
-    background_video_processing.delay(pk,pk1)
+    task = background_video_processing.apply_async((pk, pk1), queue=queue_name)
     response_data={
         "message":"hello",
-        "pid":worker_process.pid
+        "pid":worker_process.pid,
+        "task_id": task.id
     }
     return JsonResponse(response_data)
     # return StreamingHttpResponse(background_video_processing(pk,pk1) , content_type='multipart/x-mixed-replace; boundary=frame')
