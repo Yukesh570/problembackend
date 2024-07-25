@@ -3,6 +3,8 @@ from datetime import datetime
 from django.utils import timezone
 
 class Person(models.Model):
+
+    
     Name = models.CharField(max_length=20, null=True,blank=True)
     Address = models.CharField(max_length=200, null=True,blank=True)
     Phonenumber = models.IntegerField(null=True , blank=True)
@@ -11,6 +13,11 @@ class Person(models.Model):
     # tabletype=models.ForeignKey('Table',null=True, blank=True, on_delete=models.SET_NULL)
     frame=models.IntegerField(null=True , blank=True)
     totalPrice=models.DecimalField(max_digits=7,decimal_places=2,null=True , blank=True) 
+
+
+    class Meta:
+        ordering=["Address","Name"]     #ordering allows you to list the tabel in accending order accoring to the address and id addess is same then name
+
     def __str__(self):
         return str(self.email)
 

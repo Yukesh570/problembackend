@@ -92,33 +92,7 @@ def registerUser(request):
     
 @api_view(['POST'])
 def registerTable(request):
-    data=request.data
-    # try:
-    #     person_detail= Person.objects.get(
-            
-    #         Name=data['name'],
-    #         Address=data['address'],
-    #         Phonenumber=data['phonenumber'],
-    #         email=data['email'],
-    #     )
-    # except Person.DoesNotExist:
-    
-   
-    #     person_detail = Person.objects.create(
-    #         Name=data['name'],
-    #         Address=data['address'],
-    #         Phonenumber=data['phonenumber'],
-    #         email=data['email'],
-    #     )
-    #     send_mail('SnookerGame',
-    #               'You just requested to play the game',
-    #               'settings.EMAIL_HOST_USER',
-    #               [data['email']],
-    #               fail_silently=False,
-    #               )
-    # except :
-    #     return Response({'detail':'Email do not exist'},status=status.HTTP_400_BAD_REQUEST)
-    
+    data=request.data  
     try:
         frame_limit_duration = parse_duration(data['frame_limit'])
 

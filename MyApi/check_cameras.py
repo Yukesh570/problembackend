@@ -13,3 +13,7 @@ if __name__ == "__main__":
     cameras = get_available_cameras()
     print(f"Available cameras: {len(cameras)}")
     print("Camera indexes:", cameras)
+
+
+
+    #just for testing
