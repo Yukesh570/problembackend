@@ -736,7 +736,3 @@ def background_run(request,pk,pk1):
 #     return render(request, 'index.html',{'pk':pk})
 
 
-# #//////////////////////////////////////////////////////TESTING
-# def background_run(request,pk,pk1):
-#     return StreamingHttpResponse(background_video_processing(pk,pk1) , content_type='multipart/x-mixed-replace; boundary=frame')
-
