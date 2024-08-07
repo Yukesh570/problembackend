@@ -21,8 +21,9 @@
 
 import cv2
 import numpy
-
-capture= cv2.VideoCapture(0)
+pk=1
+rtsp_url=f"rtsp://admin:android18)@192.168.20.{pk}:554/cam/realmonitor?channel=1&subtype=0"
+capture= cv2.VideoCapture(rtsp_url)
 while True:
     ret,frame =capture.read()
     cv2.imshow('output',frame)

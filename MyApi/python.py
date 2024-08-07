@@ -133,7 +133,7 @@ def background_video_processing(self,pk,pk1):
     # Retrieve session variables
     person=get_object_or_404(Person,id=pk1)
     table=get_object_or_404(Table,tableno=pk)
-    cap = cv2.VideoCapture(pk)  # Use 0 for the default webcam
+    cap = cv2.VideoCapture("rtsp://admin:android18)@192.168.20.39:554/cam/realmonitor?channel=1&subtype=0")  # Use 0 for the default webcam
     if not cap.isOpened():
         raise IOError("Webcam cannot be opened.")
        
