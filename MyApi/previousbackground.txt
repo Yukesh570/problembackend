@@ -16,7 +16,7 @@ def background_video_processing(self,request,pk,pk1):
     # cap = cv2.VideoCapture(video_path)
     # if not cap.isOpened():
     #         raise IOError("Video file cannot be opened.")
-    print('=========================================================================')    
+    print('====================================================')    
     skip_frames = 2
     frame_count = current_frame_position
     gameStarted=False
